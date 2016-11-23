@@ -1,0 +1,228 @@
+{% extends 'layout.html' %}
+
+{% block title %}Your Trip{% endblock %}
+
+{% block content %}
+<div id="app" class="clearfix">
+  <div class="map-container col-sm-8 col-lg-9">
+    <div>
+      <div id="map-canvas"></div>
+    </div>
+  </div>
+  <div id="control-panel" class="col-sm-4 col-lg-3 clearfix">
+    <div class="col-xs-6 col-sm-12">
+      <div class="panel panel-default">
+        <div class="panel-body" id="options-panel">
+          <div>
+            <h4>Hotels</h4>
+            <select data-type="hotel" id="hotel-choices">
+            <!-- {% for hotel in hotels %}
+              <option>{{ hotel.name }}</option>
+            {% endfor %} -->
+            </select>
+            <button data-action="add" class="btn btn-primary btn-circle pull-right" id='btn-hotel'>+</button>
+          </div>
+          <div>
+            <h4>Restaurants</h4>
+            <select data-type="restaurant" id="restaurant-choices">
+            <!--   {% for restaurant in restaurants %}
+                <option>{{ restaurant.name }}</option>
+              {% endfor %} -->
+            </select>
+            <button data-action="add" class="btn btn-primary btn-circle pull-right" id='btn-restaurant'>+</button>
+          </div>
+          <div>
+            <h4>Activities</h4>
+            <select data-type="activity" id="activity-choices">
+              <!-- {% for activity in activities %}
+                <option>{{ activity.name }}</option>
+              {% endfor %} -->
+            </select>
+            <button data-action="add" class="btn btn-primary btn-circle pull-right" id='btn-activity'>+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-6 col-sm-12">
+      <h3>
+        <span id = 'daymention'>Add A Day With + </span><br><hr>
+        <span id="day-title">
+          <span>Remove Day</span>
+          <button id = 'removeday' class="btn btn-xs btn-danger remove btn-circle">X</button>
+        </span>
+      </h3>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="day-buttons">
+            <button class="btn btn-circle" id="day-add">+</button>
+          </div>
+        </div>
+        <div class="choice-body" id="itinerary">
+  <!--         <div>
+            <h4>My Hotel</h4>
+            <ul class="list-group">
+              <div class="itinerary-item">
+                <span id='hotel-itinerary' class="title"></span>
+                <button id='delete-hotel' class="btn btn-xs btn-danger remove btn-circle">x</button>
+              </div>
+            </ul>
+          </div>
+          <div>
+            <h4>My Restaurants</h4>
+            <ul class="list-group-restaurants">
+              
+            </ul>
+          </div>
+          <div>
+            <h4>My Activities</h4>
+            <ul class="list-group-activties">
+            
+            </ul>
+          </div> -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
+    <script src="/bootstrap/js/bootstrap.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfQxgWt-LSZcEmTEN8581Uq9SzZHnpuys"></script>
+    <script src="/js/main.js"></script>
+<script>
+$( document ).ready(function() {
+  var hotels = {{ hotels | dump | safe }};
+  var restaurants = {{ restaurants | dump | safe }};
+  var activities = {{ activities | dump | safe }};
+
+  var hotelMap = {}
+  var restaurantMap = {}
+  var activityMap = {}
+  var currenthotel;
+  var restarray = []
+  var actarray = []
+  var div = `
+        <div class="itinerary-item">
+                <span id='rest-itinerary' class="title">
+                `
+  
+  var div2   =  `</span>
+                <button  class="btn btn-xs btn-danger remove btn-circle delete-rest">x</button>
+              </div>
+          `
+
+  var daynum = 1
+
+
+  var choicebody =  ` <div class="panel-body" id="itinerary">
+          <div>
+            <h4>My Hotel</h4>
+            <ul class="list-group">
+              <div class="itinerary-item">
+                <span id='hotel-itinerary' class="title"></span>
+                <button id='delete-hotel' class="btn btn-xs btn-danger remove btn-circle">x</button>
+              </div>
+            </ul>
+          </div>
+          <div>
+            <h4>My Restaurants</h4>
+            <ul class="list-group-restaurants">
+              
+            </ul>
+          </div>
+          <div>
+            <h4>My Activities</h4>
+            <ul class="list-group-activties">
+            
+            </ul>
+          </div>
+          `
+
+  var choiceobj = {}
+  var currentday = 0
+
+  $.each(hotels, function(key, value){
+    $('#hotel-choices').append($('<option>' + value.name + '</option>'));
+    hotelMap[value.name] = value.place.location
+  })
+  $.each(restaurants, function(key, value){
+    $('#restaurant-choices').append($('<option>' + value.name + '</option>'));
+    restaurantMap[value.name] = value.place.location
+  })
+  $.each(activities, function(key, value){
+    $('#activity-choices').append($('<option>' + value.name + '</option>'));
+    activityMap[value.name] = value.place.location
+  })
+
+  $('#btn-hotel').on('click', function(){
+
+    $('#hotel-itinerary').text('')
+    var selection = $('#hotel-choices').val()
+    if(currenthotel){
+      currenthotel.setMap(null);
+    }
+    currenthotel =  drawMarker('hotel', hotelMap[selection])
+    $('#hotel-itinerary').append(selection)
+    choiceobj[currentday] = $('.choice-body').clone().html()
+  })
+
+   $('#btn-restaurant').on('click', function(){
+    var selection = $('#restaurant-choices').val()
+    drawMarker('restaurant', restaurantMap[selection])
+    if(restarray.indexOf(selection)<0){
+      restarray.push(selection)
+    $('.list-group-restaurants').append(div + selection + div2)
+  }
+    
+    $('.delete-rest').on('click', function() {
+      console.log('this is working')
+       $(this).closest('.itinerary-item').remove()
+       choiceobj[currentday] = $('.choice-body').clone().html()
+    })
+    choiceobj[currentday] = $('.choice-body').clone().html()
+  })
+
+    $('#btn-activity').on('click', function(){
+    $('#act-itinerary').text('')
+    var selection = $('#activity-choices').val()
+     drawMarker('activity', activityMap[selection])
+    if(actarray.indexOf(selection)<0){
+    actarray.push(selection)
+    $('.list-group-activties').append(div + selection + div2)
+    choiceobj[currentday] = $('.choice-body').clone().html()
+  }
+     $('.delete-rest').on('click', function() {
+       $(this).closest('.itinerary-item').remove()
+       choiceobj[currentday] = $('.choice-body').clone().html()
+    })
+  })
+
+    $('#delete-hotel').on('click', function() {
+      $('#hotel-itinerary').text('')
+      choiceobj[currentday] = $('.choice-body').clone().html()
+    })
+
+    $('#day-add').on('click', function(){
+      $('.day-buttons').append('<button id='+ daynum+ ' class="btn btn-circle day-btn">' + daynum + '</button>')
+        choiceobj[daynum] = choicebody
+        daynum++
+      $('#daymention').text('Click On A Day To Plan!')   
+
+      $('.day-btn').on('click', function(){
+      currentday = $(this).get(0).id
+      $('.choice-body').html(choiceobj[currentday])
+      $('#daymention').text('You Are On Day ' + currentday)
+    })
+
+      $('#removeday').on('click', function(){
+        $('#'+currentday).remove()
+        delete choiceobj[currentday]
+        $('.choice-body').html(choiceobj[currentday-1])
+        daynum = Object.keys(choiceobj).length +1
+        $('#daymention').text('Click On A New Day')
+      })
+
+    })
+
+  })
+</script>
+{% endblock %}
